@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+   <uses-permission android:name="android.permission.CAMERA"/><!--Android camera permsission added-->
     <application
         android:label="plant_disease_app"
         android:name="${applicationName}"

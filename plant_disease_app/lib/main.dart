@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(const PlantDiseaseApp());
@@ -20,20 +22,31 @@ class PlantDiseaseApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+// Changed from StatelessWidget to StatefulWidget — we now need to
+// remember the captured photo so we can display it (that's "state").
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  // Placeholder for now — this is where camera capture logic plugs in next.
-  void _onTakePhoto(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Camera capture coming in the next step')),
-    );
-  }
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-  void _onChooseFromGallery(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gallery picker coming in the next step')),
+class _HomeScreenState extends State<HomeScreen> {
+  final ImagePicker _picker = ImagePicker();
+  File? _capturedImage; // null until the user takes/picks a photo
+
+  Future<void> _getImage(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 90,
     );
+    if (pickedFile == null) return; // user cancelled
+
+    setState(() {
+      _capturedImage = File(pickedFile.path);
+    });
+    // Next step (once we have a trained model): send _capturedImage
+    // into ModelService.predict() here instead of just displaying it.
   }
 
   @override
@@ -49,16 +62,32 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.eco_outlined, size: 96, color: Colors.green.shade600),
+              // Shows the captured photo once there is one, otherwise the leaf icon.
+              _capturedImage == null
+                  ? Icon(Icons.eco_outlined,
+                      size: 96, color: Colors.green.shade600)
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _capturedImage!,
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
               const SizedBox(height: 20),
               Text(
-                'Scan a plant for disease',
+                _capturedImage == null
+                    ? 'Scan a plant for disease'
+                    : 'Photo captured',
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Take a photo of a leaf and we\'ll check its health',
+                _capturedImage == null
+                    ? 'Take a photo of a leaf and we\'ll check its health'
+                    : 'Ready to analyze — model comes in the next step',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey.shade600,
                     ),
@@ -73,7 +102,7 @@ class HomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () => _onTakePhoto(context),
+                  onPressed: () => _getImage(ImageSource.camera),
                 ),
               ),
               const SizedBox(height: 12),
@@ -85,7 +114,7 @@ class HomeScreen extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () => _onChooseFromGallery(context),
+                  onPressed: () => _getImage(ImageSource.gallery),
                 ),
               ),
             ],

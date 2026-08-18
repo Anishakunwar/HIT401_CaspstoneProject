@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
+  image_picker: ^1.1.2   # lets us open the camera or gallery to get a photo
 
 flutter:
   uses-material-design: true
