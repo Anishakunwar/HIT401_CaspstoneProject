@@ -52,9 +52,22 @@ def iter_image_urls(taxon_key: int):
             "limit": PAGE_SIZE,
             "offset": offset,
         }
-        resp = requests.get(GBIF_OCCURRENCE_SEARCH, params=params, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-        payload = resp.json()
+
+        payload = None
+        for attempt in range(3):
+            try:
+                resp = requests.get(GBIF_OCCURRENCE_SEARCH, params=params, timeout=REQUEST_TIMEOUT)
+                resp.raise_for_status()
+                payload = resp.json()
+                break
+            except requests.RequestException as e:
+                print(f"    GBIF search request failed (attempt {attempt + 1}/3): {e}")
+                time.sleep(2 * (attempt + 1))
+
+        if payload is None:
+            print("    giving up on this page after 3 failed attempts")
+            return
+
         results = payload.get("results", [])
         if not results:
             break
@@ -92,13 +105,17 @@ def main():
 
         print(f"\n== {slug} (taxonKey={taxon_key}) -> {class_label} ==")
         saved = 0
-        for i, url in enumerate(iter_image_urls(taxon_key)):
-            dest = out_dir / f"{slug}_{i:06d}.jpg"
-            if download_image(url, dest):
-                saved += 1
-                if saved % 50 == 0:
-                    print(f"  saved {saved} images...")
-            time.sleep(0.05)  # be polite to source servers
+        try:
+            for i, url in enumerate(iter_image_urls(taxon_key)):
+                dest = out_dir / f"{slug}_{i:06d}.jpg"
+                if download_image(url, dest):
+                    saved += 1
+                    if saved % 50 == 0:
+                        print(f"  saved {saved} images...")
+                time.sleep(0.05)  # be polite to source servers
+        except Exception as e:
+            print(f"  ERROR on {slug}: {type(e).__name__} - {e}")
+            print(f"  moving on to next species with {saved} images saved so far")
 
         print(f"  done: {saved} images saved to {out_dir}")
 
