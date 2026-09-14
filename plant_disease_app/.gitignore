@@ -48,3 +48,5 @@ app.*.map.json
 ml/venv/
 ml/data/
 ml/__pycache__/
+ml/*.keras
+ml/*.tflite
