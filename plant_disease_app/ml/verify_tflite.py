@@ -34,7 +34,7 @@ for images, labels in val_ds:
         interpreter.set_tensor(input_details[0]["index"], img)
         interpreter.invoke()
         output = interpreter.get_tensor(output_details[0]["index"])
-        prediction = 1 if output[0][0] > 0.5 else 0
+        prediction = int(output[0].argmax())
         if prediction == labels[i].numpy():
             correct += 1
         total += 1

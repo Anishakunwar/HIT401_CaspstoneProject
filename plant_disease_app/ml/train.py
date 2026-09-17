@@ -46,12 +46,12 @@ x = data_augmentation(inputs)
 x = preprocess_input(x)
 x = base_model(x, training=False)
 x = tf.keras.layers.GlobalAveragePooling2D()(x)
-outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
+outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 model = tf.keras.Model(inputs, outputs)
 
 model.compile(
     optimizer="adam",
-    loss="binary_crossentropy",
+    loss="sparse_categorical_crossentropy",
     metrics=["accuracy"],
 )
 
@@ -70,31 +70,6 @@ history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
-    callbacks=[checkpoint],
-)
-
-# --- Fine-tuning phase ---
-
-base_model.trainable = True
-
-fine_tune_at = 100
-for layer in base_model.layers[:fine_tune_at]:
-    layer.trainable = False
-
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
-    loss="binary_crossentropy",
-    metrics=["accuracy"],
-)
-
-FINE_TUNE_EPOCHS = 5
-total_epochs = EPOCHS + FINE_TUNE_EPOCHS
-
-history_fine = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=total_epochs,
-    initial_epoch=history.epoch[-1] + 1,
     callbacks=[checkpoint],
 )
 

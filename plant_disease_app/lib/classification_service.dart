@@ -10,11 +10,14 @@ class ClassificationResult {
 
 class ClassificationService {
   late final Interpreter _interpreter;
-  static const List<String> _classNames = ['lime', 'other_citrus'];
+  late final IsolateInterpreter _isolateInterpreter;
+  static const List<String> _classNames = ['lime', 'not_citrus', 'other_citrus'];
 
   Future<void> loadModel() async {
     _interpreter =
         await Interpreter.fromAsset('assets/lime_classifier_quantized.tflite');
+    _isolateInterpreter =
+        await IsolateInterpreter.create(address: _interpreter.address);
   }
 
   Future<ClassificationResult> classify(File imageFile) async {
@@ -44,13 +47,18 @@ class ClassificationService {
       ),
     );
 
-    final output = List.generate(1, (_) => List.filled(1, 0.0));
+    final output = List.generate(1, (_) => List.filled(3, 0.0));
 
-    _interpreter.run(input, output);
+    await _isolateInterpreter.run(input, output);
 
-    final score = output[0][0];
-    final classIndex = score > 0.5 ? 1 : 0;
-    final confidence = classIndex == 1 ? score : 1 - score;
+    final scores = output[0];
+    var classIndex = 0;
+    for (var i = 1; i < scores.length; i++) {
+      if (scores[i] > scores[classIndex]) {
+        classIndex = i;
+      }
+    }
+    final confidence = scores[classIndex];
 
     return ClassificationResult(_classNames[classIndex], confidence);
   }

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'classification_service.dart';
 
 void main() {
   runApp(const PlantDiseaseApp());
@@ -34,6 +35,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
   File? _capturedImage; // null until the user takes/picks a photo
+  final ClassificationService _classifier = ClassificationService();
+  ClassificationResult? _result;
+  bool _isClassifying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _classifier.loadModel();
+  }
 
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(
@@ -42,12 +52,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (pickedFile == null) return; // user cancelled
 
+    final imageFile = File(pickedFile.path);
+
     setState(() {
-      _capturedImage = File(pickedFile.path);
+      _capturedImage = imageFile;
+      _result = null;
+      _isClassifying = true;
     });
-    // Next step (once we have a trained model): send _capturedImage
-    // into ModelService.predict() here instead of just displaying it.
+
+    final result = await _classifier.classify(imageFile);
+
+    setState(() {
+      _result = result;
+      _isClassifying = false;
+    });
   }
+
+  String _statusText() {
+    if (_isClassifying) return 'Analyzing...';
+    if (_result == null) return 'Take a photo of a leaf and we\'ll check its health';
+
+    final confidencePct = (_result!.confidence * 100).toStringAsFixed(1);
+    switch (_result!.label) {
+      case 'lime':
+        return 'Looks like a lime ($confidencePct% confidence)';
+      case 'other_citrus':
+        return 'This is citrus, but doesn\'t look like a lime ($confidencePct% confidence)';
+      default: // 'not_citrus'
+        return 'This doesn\'t look like a citrus plant at all ($confidencePct% confidence)';
+    }
+  }
+
 // Ashish Testing
   @override
   Widget build(BuildContext context) {
@@ -85,9 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _capturedImage == null
-                    ? 'Take a photo of a leaf and we\'ll check its health'
-                    : 'Ready to analyze — model comes in the next step',
+                _statusText(),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey.shade600,
                     ),

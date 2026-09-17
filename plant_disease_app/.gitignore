@@ -50,3 +50,6 @@ ml/data/
 ml/__pycache__/
 ml/*.keras
 ml/*.tflite
+
+# Android root build directory
+android/build/

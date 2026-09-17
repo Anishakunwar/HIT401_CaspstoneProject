@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.6
   image_picker: ^1.1.2   # lets us open the camera or gallery to get a photo
-  tflite_flutter: ^0.10.4   # runs the trained .tflite model on-device
+  tflite_flutter: ^0.12.1   # runs the trained .tflite model on-device
   image: ^4.2.0   # decodes and resizes photos before feeding them to the model
 
 flutter:

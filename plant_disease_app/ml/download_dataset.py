@@ -38,6 +38,10 @@ SPECIES = [
     (3190158, "orange", "other_citrus"),          # Citrus sinensis
     (7647136, "lemon", "other_citrus"),           # Citrus limon
     (3190172, "mandarin", "other_citrus"),        # Citrus reticulata
+    (212, "bird", "not_citrus"),                  # Aves
+    (2435035, "cat", "not_citrus"),               # Felis catus
+    (6164210, "dog", "not_citrus"),               # Canis lupus familiaris
+    (216, "insect", "not_citrus"),                # Insecta
 ]
 
 
