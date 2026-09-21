@@ -64,12 +64,31 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(
     mode="max",
 )
 
+# Class sizes are uneven (lime is the smallest class), so weight each
+# class's loss inversely to how many images it has. (Earlier removed this
+# on a wrong theory that it caused the diagram misclassification — it
+# didn't; removing it just broke lime recognition without fixing the
+# diagram. Restored, with counts updated for the added synthetic images.)
+import pathlib
+data_dir = pathlib.Path(DATA_DIR)
+class_counts_named = {
+    d.name: len(list(d.glob("*.jpg")))
+    for d in sorted(data_dir.iterdir()) if d.is_dir()
+}
+ordered_names = sorted(class_counts_named.keys())
+class_counts = {i: class_counts_named[name] for i, name in enumerate(ordered_names)}
+total = sum(class_counts.values())
+class_weight = {i: total / (len(class_counts) * count) for i, count in class_counts.items()}
+print("Class counts:", class_counts_named)
+print("Class weights:", class_weight)
+
 EPOCHS = 10
 
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
+    class_weight=class_weight,
     callbacks=[checkpoint],
 )
 

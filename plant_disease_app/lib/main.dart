@@ -68,11 +68,32 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  static const double _minConfidence = 0.60;
+
+  String _labelName(String label) {
+    switch (label) {
+      case 'lime':
+        return 'lime';
+      case 'other_citrus':
+        return 'other citrus';
+      default:
+        return 'not citrus';
+    }
+  }
+
   String _statusText() {
     if (_isClassifying) return 'Analyzing...';
     if (_result == null) return 'Take a photo of a leaf and we\'ll check its health';
 
     final confidencePct = (_result!.confidence * 100).toStringAsFixed(1);
+
+    // Below this the model is close to guessing; say so instead of showing
+    // a label that could easily be wrong.
+    if (_result!.confidence < _minConfidence) {
+      return 'Not sure — try a clearer, closer photo '
+          '(best guess: ${_labelName(_result!.label)}, $confidencePct%)';
+    }
+
     switch (_result!.label) {
       case 'lime':
         return 'Looks like a lime ($confidencePct% confidence)';

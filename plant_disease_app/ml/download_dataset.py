@@ -33,15 +33,20 @@ DATA_DIR = Path(__file__).parent / "data"
 
 # (GBIF taxonKey, species slug, target class)
 SPECIES = [
-    (8033094, "finger_lime", "lime"),           # Citrus australasica
     (3190164, "key_lime", "lime"),               # Citrus x aurantiifolia
+    # NOTE: finger_lime (8033094) was tried and removed — its fruit is
+    # elongated/cylindrical, a completely different shape from a normal
+    # round lime, which diluted the "lime" class's visual consistency and
+    # weakened recognition of real (round) garden lime photos.
     (3190158, "orange", "other_citrus"),          # Citrus sinensis
     (7647136, "lemon", "other_citrus"),           # Citrus limon
     (3190172, "mandarin", "other_citrus"),        # Citrus reticulata
-    (212, "bird", "not_citrus"),                  # Aves
     (2435035, "cat", "not_citrus"),               # Felis catus
     (6164210, "dog", "not_citrus"),               # Canis lupus familiaris
-    (216, "insect", "not_citrus"),                # Insecta
+    # NOTE: bird (212) and insect (216) were tried and removed — both are
+    # overwhelmingly photographed perched on branches/leaves, which taught
+    # the model "green foliage background" as a false "not citrus" signal
+    # and caused real lime photos to be misclassified with high confidence.
 ]
 
 

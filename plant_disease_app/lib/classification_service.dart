@@ -36,11 +36,15 @@ class ClassificationService {
         (y) => List.generate(
           224,
           (x) {
+            // Raw 0-255 values on purpose — the model's own preprocess_input
+            // layer (baked in at training time) normalizes internally.
+            // Normalizing again here double-scales the input and breaks
+            // classification.
             final pixel = resized.getPixel(x, y);
             return [
-              (pixel.r / 127.5) - 1.0,
-              (pixel.g / 127.5) - 1.0,
-              (pixel.b / 127.5) - 1.0,
+              pixel.r.toDouble(),
+              pixel.g.toDouble(),
+              pixel.b.toDouble(),
             ];
           },
         ),

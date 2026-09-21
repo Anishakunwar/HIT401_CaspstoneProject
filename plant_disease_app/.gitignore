@@ -50,6 +50,11 @@ ml/data/
 ml/__pycache__/
 ml/*.keras
 ml/*.tflite
+ml/some_folder/
+ml/*.zip
 
 # Android root build directory
 android/build/
+
+# Images set aside during dataset filtering
+ml/data_excluded/
