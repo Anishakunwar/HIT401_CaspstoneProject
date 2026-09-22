@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'classification_service.dart';
+import 'disease_service.dart';
 
 void main() {
   runApp(const PlantDiseaseApp());
@@ -39,10 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
   ClassificationResult? _result;
   bool _isClassifying = false;
 
+  final DiseaseService _disease = DiseaseService();
+  DiseaseResult? _diseaseResult;
+  bool _diseaseReady = false;
+
   @override
   void initState() {
     super.initState();
     _classifier.loadModel();
+    _loadDisease();
+  }
+
+  // The disease model is optional: if it fails to load, Stage 1 still works.
+  Future<void> _loadDisease() async {
+    try {
+      await _disease.loadModel();
+      _diseaseReady = true;
+    } catch (_) {
+      _diseaseReady = false;
+    }
   }
 
   Future<void> _getImage(ImageSource source) async {
@@ -57,15 +73,56 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _capturedImage = imageFile;
       _result = null;
+      _diseaseResult = null;
       _isClassifying = true;
     });
 
     final result = await _classifier.classify(imageFile);
 
+    // Stage 2 runs unless Stage 1 is confident this isn't citrus. It has its
+    // own "other" class for photos that aren't a plain-background leaf, so
+    // Stage 1's confidence isn't used to gate it further.
+    final confidentlyNotCitrus =
+        result.label == 'not_citrus' && result.confidence >= _minConfidence;
+    DiseaseResult? disease;
+    if (_diseaseReady && !confidentlyNotCitrus) {
+      try {
+        disease = await _disease.classify(imageFile);
+      } catch (_) {
+        disease = null;
+      }
+    }
+
     setState(() {
       _result = result;
+      _diseaseResult = disease;
       _isClassifying = false;
     });
+  }
+
+  static const double _minDiseaseConfidence = 0.80;
+
+  String? _diseaseText() {
+    final d = _diseaseResult;
+    if (d == null) return null;
+    const howTo = 'For a disease check, place one leaf on plain white paper '
+        'and take a close-up.';
+    if (d.label == 'other') return 'Leaf check: $howTo';
+    if (d.confidence < _minDiseaseConfidence) {
+      return 'Leaf check: inconclusive. Try a sharper close-up of a single '
+          'leaf on plain paper.';
+    }
+    final pct = (d.confidence * 100).toStringAsFixed(0);
+    const report = 'This is not a diagnosis — report suspected canker or '
+        'greening (HLB) to your local biosecurity authority.';
+    switch (d.label) {
+      case 'canker':
+        return 'Leaf check: possible citrus canker ($pct%). $report';
+      case 'hlb':
+        return 'Leaf check: possible greening / HLB ($pct%). $report';
+      default:
+        return 'Leaf check: no sign of canker or greening ($pct%).';
+    }
   }
 
   static const double _minConfidence = 0.60;
@@ -147,6 +204,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                 textAlign: TextAlign.center,
               ),
+              if (_diseaseText() != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _diseaseText()!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.green.shade800,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,

@@ -58,3 +58,11 @@ android/build/
 
 # Images set aside during dataset filtering
 ml/data_excluded/
+
+# Disease-model data (extracted from the Mendeley zip)
+ml/disease/raw/
+ml/disease/data/
+ml/disease/*.keras
+ml/disease/*.tflite
+ml/disease/data2/
+ml/disease/*.txt
