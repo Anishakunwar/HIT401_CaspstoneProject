@@ -66,3 +66,8 @@ ml/disease/*.keras
 ml/disease/*.tflite
 ml/disease/data2/
 ml/disease/*.txt
+
+# App-local fruit training environment and dataset
+ml/.venv/
+ml/data/
+ml/fruit_classifier.keras

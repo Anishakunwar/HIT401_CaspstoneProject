@@ -1,0 +1,20 @@
+{
+  "classes": [
+    "apple",
+    "banana",
+    "lime",
+    "not_fruit",
+    "other_citrus",
+    "other_fruit"
+  ],
+  "test_loss": 0.2257559597492218,
+  "test_accuracy": 0.9197672009468079,
+  "train_counts": {
+    "apple": 2500,
+    "banana": 1917,
+    "lime": 490,
+    "not_fruit": 2500,
+    "other_citrus": 2500,
+    "other_fruit": 2500
+  }
+}

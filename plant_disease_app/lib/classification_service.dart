@@ -11,11 +11,14 @@ class ClassificationResult {
 class ClassificationService {
   late final Interpreter _interpreter;
   late final IsolateInterpreter _isolateInterpreter;
-  static const List<String> _classNames = ['lime', 'not_citrus', 'other_citrus'];
+  // Keep this order identical to the alphabetic class order in ml/train.py.
+  static const List<String> _classNames = [
+    'apple', 'banana', 'lime', 'not_fruit', 'other_citrus', 'other_fruit'
+  ];
 
   Future<void> loadModel() async {
     _interpreter =
-        await Interpreter.fromAsset('assets/lime_classifier_quantized.tflite');
+        await Interpreter.fromAsset('assets/fruit_classifier_quantized.tflite');
     _isolateInterpreter =
         await IsolateInterpreter.create(address: _interpreter.address);
   }
@@ -27,7 +30,17 @@ class ClassificationService {
       throw Exception('Could not decode image');
     }
 
-    final resized = img.copyResize(image, width: 224, height: 224);
+    // Transparent PNGs (such as product cutouts) have black RGB values in
+    // fully transparent pixels. Flatten them onto white so the model sees
+    // the same kind of background used by its training images.
+    final opaqueImage = image.hasAlpha
+        ? (img.Image(width: image.width, height: image.height, numChannels: 3)
+          ..clear(img.ColorRgb8(255, 255, 255)))
+        : image;
+    if (image.hasAlpha) {
+      img.compositeImage(opaqueImage, image);
+    }
+    final resized = img.copyResize(opaqueImage, width: 224, height: 224);
 
     final input = List.generate(
       1,
@@ -51,7 +64,7 @@ class ClassificationService {
       ),
     );
 
-    final output = List.generate(1, (_) => List.filled(3, 0.0));
+    final output = List.generate(1, (_) => List.filled(_classNames.length, 0.0));
 
     await _isolateInterpreter.run(input, output);
 
@@ -63,6 +76,19 @@ class ClassificationService {
       }
     }
     final confidence = scores[classIndex];
+
+    // Lime and other citrus are closely related classes. Use their combined
+    // probability as a stricter gate so a weak citrus guess is reported as
+    // uncertain instead of being treated as citrus (and sent to the leaf
+    // disease model).
+    const limeIndex = 2;
+    const otherCitrusIndex = 4;
+    const minCitrusConfidence = 0.70;
+    final isCitrus = classIndex == limeIndex || classIndex == otherCitrusIndex;
+    final citrusConfidence = scores[limeIndex] + scores[otherCitrusIndex];
+    if (isCitrus && citrusConfidence < minCitrusConfidence) {
+      return ClassificationResult('uncertain', citrusConfidence);
+    }
 
     return ClassificationResult(_classNames[classIndex], confidence);
   }

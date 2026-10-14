@@ -1,0 +1,70 @@
+{
+  "classes": [
+    "apple",
+    "banana",
+    "lime",
+    "not_fruit",
+    "other_citrus",
+    "other_fruit"
+  ],
+  "test_images": 4811,
+  "test_accuracy": 0.9133236333402619,
+  "class_accuracy": {
+    "apple": 0.896,
+    "banana": 0.9953488372093023,
+    "lime": 1.0,
+    "not_fruit": 0.914,
+    "other_citrus": 0.977,
+    "other_fruit": 0.799
+  },
+  "confusion_matrix": [
+    [
+      896,
+      0,
+      0,
+      35,
+      4,
+      65
+    ],
+    [
+      0,
+      642,
+      0,
+      3,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      166,
+      0,
+      0,
+      0
+    ],
+    [
+      12,
+      1,
+      0,
+      914,
+      10,
+      63
+    ],
+    [
+      0,
+      0,
+      0,
+      7,
+      977,
+      16
+    ],
+    [
+      23,
+      0,
+      0,
+      152,
+      26,
+      799
+    ]
+  ]
+}

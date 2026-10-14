@@ -77,21 +77,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _isClassifying = true;
     });
 
-    final result = await _classifier.classify(imageFile);
-
-    // Stage 2 runs unless Stage 1 is confident this isn't citrus. It has its
-    // own "other" class for photos that aren't a plain-background leaf, so
-    // Stage 1's confidence isn't used to gate it further.
-    final confidentlyNotCitrus =
-        result.label == 'not_citrus' && result.confidence >= _minConfidence;
+    // Check the leaf model before deciding this is a fruit. The fruit model's
+    // `not_fruit` class also includes leaves, so it must not gate leaf scans.
     DiseaseResult? disease;
-    if (_diseaseReady && !confidentlyNotCitrus) {
+    if (_diseaseReady) {
       try {
         disease = await _disease.classify(imageFile);
       } catch (_) {
         disease = null;
       }
     }
+    final result = await _classifier.classify(imageFile);
 
     setState(() {
       _result = result;
@@ -104,11 +100,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _diseaseText() {
     final d = _diseaseResult;
-    if (d == null) return null;
-    const howTo = 'For a disease check, place one leaf on plain white paper '
-        'and take a close-up.';
-    if (d.label == 'other') return 'Leaf check: $howTo';
+    if (d == null || d.label == 'other') return null;
     if (d.confidence < _minDiseaseConfidence) {
+      if (_result?.label != 'not_fruit') return null;
       return 'Leaf check: inconclusive. Try a sharper close-up of a single '
           'leaf on plain paper.';
     }
@@ -129,20 +123,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _labelName(String label) {
     switch (label) {
+      case 'uncertain':
+        return 'uncertain';
       case 'lime':
         return 'lime';
       case 'other_citrus':
         return 'other citrus';
+      case 'apple':
+        return 'apple';
+      case 'banana':
+        return 'banana';
+      case 'other_fruit':
+        return 'another fruit';
       default:
-        return 'not citrus';
+        return 'not a fruit';
     }
   }
 
   String _statusText() {
     if (_isClassifying) return 'Analyzing...';
-    if (_result == null) return 'Take a photo of a leaf and we\'ll check its health';
+    if (_result == null) return 'Take a photo of a fruit or citrus leaf to identify it';
+
+    final disease = _diseaseResult;
+    if (disease != null &&
+        disease.label != 'other' &&
+        disease.confidence >= _minDiseaseConfidence) {
+      return 'Citrus leaf detected';
+    }
+    if (_result!.label == 'not_fruit' &&
+        disease != null &&
+        disease.label != 'other') {
+      return 'Possible citrus leaf — leaf check inconclusive';
+    }
 
     final confidencePct = (_result!.confidence * 100).toStringAsFixed(1);
+
+    if (_result!.label == 'uncertain') {
+      return 'Not sure this is citrus ($confidencePct% combined citrus score). '
+          'Try a clear close-up of one fruit on a plain background.';
+    }
 
     // Below this the model is close to guessing; say so instead of showing
     // a label that could easily be wrong.
@@ -156,8 +175,14 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Looks like a lime ($confidencePct% confidence)';
       case 'other_citrus':
         return 'This is citrus, but doesn\'t look like a lime ($confidencePct% confidence)';
-      default: // 'not_citrus'
-        return 'This doesn\'t look like a citrus plant at all ($confidencePct% confidence)';
+      case 'apple':
+        return 'Looks like an apple ($confidencePct% confidence)';
+      case 'banana':
+        return 'Looks like a banana ($confidencePct% confidence)';
+      case 'other_fruit':
+        return 'Looks like another fruit ($confidencePct% confidence)';
+      default: // 'not_fruit'
+        return 'This doesn\'t look like a fruit ($confidencePct% confidence)';
     }
   }
 
@@ -191,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
               Text(
                 _capturedImage == null
-                    ? 'Scan a plant for disease'
+                    ? 'Scan fruit or a citrus leaf'
                     : 'Photo captured',
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,

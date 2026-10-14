@@ -29,7 +29,15 @@ class DiseaseService {
       throw Exception('Could not decode image');
     }
 
-    final resized = img.copyResize(image, width: 224, height: 224);
+    // Keep transparent cutouts on the same white background used by training.
+    final opaqueImage = image.hasAlpha
+        ? (img.Image(width: image.width, height: image.height, numChannels: 3)
+          ..clear(img.ColorRgb8(255, 255, 255)))
+        : image;
+    if (image.hasAlpha) {
+      img.compositeImage(opaqueImage, image);
+    }
+    final resized = img.copyResize(opaqueImage, width: 224, height: 224);
 
     // Raw 0-255 values: the model normalizes internally (same as Stage 1).
     final input = List.generate(
